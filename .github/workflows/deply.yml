@@ -1,0 +1,50 @@
+name: Deploy Website
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  dev:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Helm Login
+        run: |
+          aws ecr get-login-password --region us-east-1 \
+            | helm registry login --username AWS --password-stdin <account-id>.dkr.ecr.us-east-1.amazonaws.com
+
+      - name: Deploy to Dev
+        run: |
+          kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -
+          helm upgrade --install my-website oci://<account-id>.dkr.ecr.us-east-1.amazonaws.com/helm/my-website \
+            --version 0.1.0 -n dev
+
+  staging:
+    runs-on: ubuntu-latest
+    needs: dev
+    environment: staging
+    steps:
+      - name: Deploy to Staging
+        run: |
+          kubectl create namespace staging --dry-run=client -o yaml | kubectl apply -f -
+          helm upgrade --install my-website oci://<account-id>.dkr.ecr.us-east-1.amazonaws.com/helm/my-website \
+            --version 0.1.0 -n staging
+
+  prod:
+    runs-on: ubuntu-latest
+    needs: staging
+    environment: prod
+    steps:
+      - name: Deploy to Prod
+        run: |
+          kubectl create namespace prod --dry-run=client -o yaml | kubectl apply -f -
+          helm upgrade --install my-website oci://<account-id>.dkr.ecr.us-east-1.amazonaws.com/helm/my-website \
+            --version 0.1.0 -n prod
