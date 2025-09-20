@@ -28,9 +28,9 @@ jobs:
       - name: Helm Login to ECR
         run: |
           aws ecr get-login-password --region us-east-1 \
-            | helm registry login --username AWS --password-stdin <account-id>.dkr.ecr.us-east-1.amazonaws.com
+            | helm registry login --username AWS --password-stdin 414927534660.dkr.ecr.us-east-1.amazonaws.com
 
       - name: Package & Push Helm Chart
         run: |
           helm package ./helm/my-website
-          helm push my-website-*.tgz oci://<account-id>.dkr.ecr.us-east-1.amazonaws.com/helm
+          helm push my-website-*.tgz oci://414927534660.dkr.ecr.us-east-1.amazonaws.com/helm
